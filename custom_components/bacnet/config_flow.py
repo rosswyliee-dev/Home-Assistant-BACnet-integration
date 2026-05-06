@@ -184,9 +184,16 @@ class BACnetConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         its client is stored in ``hass.data[DOMAIN][entry_id][DATA_CLIENT]``.
         We can safely reuse it for discovery / object reads, avoiding a
         duplicate UDP bind on the same port.
+
+        Internal keys (shared_client_*, setup_lock) store non-dict values
+        and are skipped explicitly to avoid AttributeError.
         """
         domain_data = self.hass.data.get(DOMAIN, {})
         for entry_id, entry_data in domain_data.items():
+            # Skip internal keys — shared clients and the setup lock are
+            # stored directly as BACnetClient / asyncio.Lock objects, not dicts.
+            if not isinstance(entry_data, dict):
+                continue
             client = entry_data.get(DATA_CLIENT)
             if (
                 client is not None
